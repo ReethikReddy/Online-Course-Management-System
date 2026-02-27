@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-container" style="max-width: 500px;">
+    <h2>Create an Account</h2>
+    <div id="error-message" style="color: var(--danger); text-align: center; margin-bottom: 1rem; display: none;"></div>
+
+    <form id="register-form">
+        <div class="form-group" style="display: flex; gap: 1rem;">
+            <div style="flex: 1;">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" required>
+            </div>
+            <div style="flex: 1;">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password (Minimum 8 chars)</label>
+            <input type="password" id="password" name="password" required autocomplete="new-password">
+        </div>
+
+        <div class="form-group">
+            <label for="role">Register As</label>
+            <select id="role" name="role"
+                style="width: 100%; padding: 0.75rem; background-color: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-light); font-size: 1rem;">
+                <option value="student">Student</option>
+                <option value="instructor">Instructor</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-submit">Sign Up</button>
+    </form>
+
+    <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">
+        Already have an account? <a href="/login" style="color: var(--primary); text-decoration: none;">Log in</a>
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('error-message');
+        const submitBtn = document.querySelector('.btn-submit');
+
+        errorEl.style.display = 'none';
+        submitBtn.textContent = 'Creating account...';
+        submitBtn.disabled = true;
+
+        const data = {
+            first_name: e.target.first_name.value,
+            last_name: e.target.last_name.value,
+            username: e.target.username.value,
+            email: e.target.email.value,
+            password: e.target.password.value,
+            role: e.target.role.value
+        };
+
+        try {
+            const response = await fetch('/api/auth/register/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                // Automatically log in on redirect to login page OR perform login directly
+                window.location.href = '/login';
+            } else {
+                const errs = await response.json();
+                const msg = Object.values(errs).flat().join('<br>');
+                errorEl.innerHTML = msg;
+                errorEl.style.display = 'block';
+            }
+        } catch (err) {
+            errorEl.textContent = 'An error occurred. Please try again.';
+            errorEl.style.display = 'block';
+        } finally {
+            submitBtn.textContent = 'Sign Up';
+            submitBtn.disabled = false;
+        }
+    });
+</script>
+{% endblock %}

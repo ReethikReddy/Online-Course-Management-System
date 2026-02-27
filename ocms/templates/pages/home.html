@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div style="padding: 6rem 1rem; max-width: 800px; text-align: left;">
+    <h1 style="font-size: 3rem; margin-bottom: 1rem; font-weight: 700; color: #ffffff;">Welcome to Online Management
+        System</h1>
+    <p style="font-size: 1.15rem; color: #cbd5e1; margin-bottom: 2.5rem; line-height: 1.6;">
+        Discover and enroll in world-class courses from the best instructors. Upgrade your skills today with our premium
+        courses.
+    </p>
+
+    <div style="display: flex; gap: 1.5rem; align-items: center;">
+        <a href="/courses"
+            style="color: #9333ea; font-size: 1.1rem; font-weight: 600; text-decoration: none; transition: color 0.2s;">Browse
+            All Courses</a>
+        <a href="/register" id="home-join-btn"
+            style="background-color: #6366f1; color: white; padding: 0.8rem 2rem; border-radius: 8px; font-size: 1.1rem; font-weight: 600; text-decoration: none; transition: background-color 0.2s;">Sign
+            Up Free</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    if (isLoggedIn()) {
+        const joinBtn = document.getElementById('home-join-btn');
+        if (joinBtn) joinBtn.style.display = 'none';
+    }
+</script>
+{% endblock %}

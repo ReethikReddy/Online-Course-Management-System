@@ -1,0 +1,133 @@
+{% extends "admin/base.html" %}
+
+{% load i18n %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">Django administration</a></h1>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* Theme overrides matching the requested cyan and dark theme */
+    :root,
+    [data-theme="light"],
+    [data-theme="dark"] {
+        /* Primary color (Cyan) for headers and backgrounds */
+        --primary: #2bc1db;
+        --secondary: #2bc1db;
+
+        /* Ensure app header text is readable (black text on cyan background) */
+        --header-link-color: #000000;
+
+        /* Dark background for the body */
+        --body-bg: #1a1a1a;
+        --body-fg: #f5f5f5;
+        --body-quiet-color: #b0b0b0;
+        --body-loud-color: #ffffff;
+
+        /* Breadcrumbs and general dark areas */
+        --breadcrumbs-bg: #212121;
+        --breadcrumbs-fg: #f5f5f5;
+        --breadcrumbs-link-fg: #f5f5f5;
+
+        /* Link colors */
+        --link-fg: #2bc1db;
+        --link-hover-color: #1a8a9e;
+        --link-selected-fg: #2bc1db;
+
+        /* Borders */
+        --hairline-color: #333333;
+        --border-color: #444444;
+
+        /* Row highlighting */
+        --darkened-bg: #2a2a2a;
+        --selected-bg: #3a3a3a;
+        --selected-row: #3a3a3a;
+
+        /* Top header section */
+        --header-bg: #2bc1db;
+        --header-color: #ffffff;
+        --header-branding-color: #ffffff;
+
+        /* Module blocks and buttons */
+        --button-bg: #2bc1db;
+        --button-fg: #000000;
+        --button-hover-bg: #1a8a9e;
+        --default-button-bg: #2bc1db;
+        --default-button-hover-bg: #1a8a9e;
+    }
+
+    /* App group headers (e.g. ACCOUNTS, COURSES) */
+    .module h2,
+    .module caption,
+    .inline-group h2 {
+        background-color: var(--primary) !important;
+        color: #000000 !important;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .module h2 a.section:link,
+    .module h2 a.section:visited {
+        color: #000000 !important;
+    }
+
+    /* Module lists */
+    tr {
+        background: #212121;
+    }
+
+    tr.alt {
+        background: #2a2a2a;
+    }
+
+    td,
+    th {
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+
+    /* Recent actions sidebar */
+    #content-related {
+        background-color: #2f2f2f;
+        border-radius: 4px;
+        padding: 15px;
+    }
+
+    #content-related .module h2 {
+        background-color: transparent !important;
+        color: #ffffff !important;
+        border-bottom: 1px solid #555555;
+        margin-bottom: 10px;
+        text-transform: none;
+    }
+
+    #content-related h3 {
+        color: #e0e0e0;
+    }
+
+    /* Top header */
+    #header {
+        background-color: var(--secondary) !important;
+        color: #ffffff !important;
+    }
+
+    #branding h1,
+    #branding h1 a:link,
+    #branding h1 a:visited {
+        color: #ffffff !important;
+    }
+
+    #user-tools,
+    #user-tools a:link,
+    #user-tools a:visited {
+        color: #ffffff !important;
+    }
+
+    /* Links inside content */
+    a:link,
+    a:visited {
+        color: var(--link-fg);
+    }
+</style>
+{% endblock %}

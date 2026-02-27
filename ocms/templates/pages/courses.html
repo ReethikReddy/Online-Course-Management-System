@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Courses{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Explore Courses</h1>
+    <p style="color: var(--text-muted); font-size: 1.1rem;">Discover new skills and level up your career.</p>
+</div>
+
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+    <input type="text" id="search-input" placeholder="Search courses..."
+        style="flex: 1; padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-dark); color: white;">
+    <button onclick="fetchCourses()" class="btn-submit" style="width: auto; margin: 0;">Search</button>
+</div>
+
+<div class="course-grid" id="public-courses-grid">
+    <div style="text-align:center; padding: 2rem; width: 100%;">Loading courses...</div>
+</div>
+
+<div style="text-align: center; margin-top: 2rem; display: flex; justify-content: center; gap: 1rem;">
+    <button id="prev-btn" class="btn-submit" style="width: auto; display: none;"
+        onclick="changePage(prevUrl)">Previous</button>
+    <button id="next-btn" class="btn-submit" style="width: auto; display: none;"
+        onclick="changePage(nextUrl)">Next</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let nextUrl = null;
+    let prevUrl = null;
+    let currentUrl = '/api/courses/';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchCourses();
+    });
+
+    async function fetchCourses() {
+        const searchParams = new URLSearchParams();
+        const query = document.getElementById('search-input').value;
+        if (query) searchParams.append('search', query);
+
+        const url = currentUrl + '?' + searchParams.toString();
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+
+            const grid = document.getElementById('public-courses-grid');
+            grid.innerHTML = '';
+
+            nextUrl = data.next ? data.next.replace('http://localhost:8000', '') : null;
+            prevUrl = data.previous ? data.previous.replace('http://localhost:8000', '') : null;
+
+            document.getElementById('next-btn').style.display = nextUrl ? 'inline-block' : 'none';
+            document.getElementById('prev-btn').style.display = prevUrl ? 'inline-block' : 'none';
+
+            if (data.results.length === 0) {
+                grid.innerHTML = '<p>No courses found.</p>';
+                return;
+            }
+
+            data.results.forEach(course => {
+                grid.innerHTML += `
+                <div class="course-card">
+                    <div class="course-img-placeholder">${course.title.charAt(0)}</div>
+                    <div class="course-content">
+                        <div class="course-title">${course.title}</div>
+                        <div class="course-author">${course.category_detail ? course.category_detail.name : 'Uncategorized'} | Level: ${course.level}</div>
+                        <div style="flex: 1; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                            ${course.description.substring(0, 100)}...
+                        </div>
+                        <div class="course-footer">
+                            <div class="course-price">$${course.price}</div>
+                            <a href="/course-detail/${course.id}" class="btn-submit" style="width: auto; padding: 0.5rem 1rem; margin: 0; text-decoration: none;">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            });
+        } catch (e) {
+            console.error('Error fetching public courses', e);
+        }
+    }
+
+    function changePage(url) {
+        if (url) {
+            currentUrl = url.split('?')[0]; // Extract base URL, search logic will append
+            fetchCourses();
+        }
+    }
+</script>
+{% endblock %}

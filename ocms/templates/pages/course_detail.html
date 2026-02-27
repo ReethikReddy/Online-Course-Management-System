@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Course Detail{% endblock %}
+
+{% block content %}
+<div id="course-detail-loader" style="text-align:center; padding: 4rem;">Loading...</div>
+
+<div id="course-detail-content" style="display: none;">
+    <div
+        style="background-color: var(--bg-card); padding: 3rem; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 id="cd-title" style="font-size: 2.5rem; margin-bottom: 0.5rem;"></h1>
+                <p id="cd-category" style="color: var(--primary); font-weight: 600; margin-bottom: 1rem;"></p>
+                <p id="cd-desc"
+                    style="color: var(--text-muted); line-height: 1.6; max-width: 800px; margin-bottom: 2rem;"></p>
+                <div style="display:flex; gap: 2rem; color: var(--text-light);">
+                    <div id="cd-instructor"><strong>Instructor:</strong> <span></span></div>
+                    <div id="cd-level"><strong>Level:</strong> <span></span></div>
+                    <div id="cd-price"><strong>Price:</strong> <span style="color: var(--success)"></span></div>
+                </div>
+            </div>
+
+            <div style="text-align: right;" id="enroll-action-area">
+                <button id="enroll-btn" onclick="enrollCourse()" class="btn-submit"
+                    style="padding: 1rem 2rem; font-size: 1.1rem;">Enroll Now</button>
+                <p id="enroll-msg" style="margin-top: 1rem; color: var(--success); display: none;">You are enrolled!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Curriculum -->
+    <h2 style="margin-bottom: 1.5rem;">Course Curriculum</h2>
+    <div id="cd-modules">
+        <!-- Injected via JS -->
+    </div>
+
+    <!-- Reviews -->
+    <h2 style="margin-top: 3rem; margin-bottom: 1.5rem;">Student Reviews <span id="cd-avg-rating"
+            style="color: gold; font-size:1.2rem;"></span></h2>
+    <div id="cd-reviews" style="display: grid; gap: 1rem;">
+        <!-- Injected via JS -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const courseId = window.location.pathname.split('/').pop();
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const [courseRes, reviewsRes] = await Promise.all([
+                fetch(`/api/courses/${courseId}/`),
+                fetch(`/api/courses/${courseId}/reviews/`)
+            ]);
+
+            const course = await courseRes.json();
+            const reviewsData = await reviewsRes.json();
+
+            document.getElementById('course-detail-loader').style.display = 'none';
+            document.getElementById('course-detail-content').style.display = 'block';
+
+            // Populate header
+            document.getElementById('cd-title').textContent = course.title;
+            document.getElementById('cd-category').textContent = course.category_detail ? course.category_detail.name : '';
+            document.getElementById('cd-desc').textContent = course.description;
+            document.querySelector('#cd-instructor span').textContent = course.instructor ? course.instructor.username : 'Unknown';
+            document.querySelector('#cd-level span').textContent = course.level;
+            document.querySelector('#cd-price span').textContent = `$${course.price}`;
+
+            // Populate Modules
+            const modContainer = document.getElementById('cd-modules');
+            let modHtml = '';
+            if (course.modules && course.modules.length > 0) {
+                course.modules.forEach(mod => {
+                    modHtml += `
+                    <div style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1rem; overflow: hidden;">
+                        <div style="padding: 1.5rem; background-color: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border);">
+                            <h3 style="margin: 0;">${mod.title}</h3>
+                        </div>
+                        <div style="padding: 1rem 1.5rem;">
+                `;
+                    if (mod.lectures && mod.lectures.length > 0) {
+                        mod.lectures.forEach(lec => {
+                            modHtml += `
+                            <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <div>🎥 ${lec.title}</div>
+                                <div style="color: var(--text-muted); font-size: 0.85rem;">🔒 Locked</div>
+                            </div>
+                        `;
+                        });
+                    } else {
+                        modHtml += `<p style="color: var(--text-muted); font-size: 0.9rem;">No lectures in this module yet.</p>`;
+                    }
+                    modHtml += `</div></div>`;
+                });
+            } else {
+                modHtml = `<p style="color: var(--text-muted);">This course has no curriculum defined yet.</p>`;
+            }
+            modContainer.innerHTML = modHtml;
+
+            // Populate Reviews
+            document.getElementById('cd-avg-rating').textContent = `★ ${reviewsData.average_rating || '0.0'}`;
+            const revContainer = document.getElementById('cd-reviews');
+            let revHtml = '';
+            if (reviewsData.reviews && reviewsData.reviews.length > 0) {
+                reviewsData.reviews.forEach(r => {
+                    revHtml += `
+                    <div style="background-color: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="display:flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <strong>${r.student_name}</strong>
+                            <span style="color: gold;">${'★'.repeat(r.rating)}</span>
+                        </div>
+                        <p style="color: var(--text-muted);">${r.comment || ''}</p>
+                    </div>
+                `;
+                });
+            } else {
+                revHtml = `<p style="color: var(--text-muted);">No reviews yet.</p>`;
+            }
+            revContainer.innerHTML = revHtml;
+
+            // Check enrollment status if logged in
+            if (isLoggedIn() && getUserRole() === 'student') {
+                const enrollRes = await apiFetch('/api/my-courses/');
+                if (enrollRes.ok) {
+                    const enData = await enrollRes.json();
+                    const isEnrolled = enData.results.some(e => e.course_detail.id === parseInt(courseId));
+                    if (isEnrolled) {
+                        document.getElementById('enroll-btn').style.display = 'none';
+                        const msg = document.getElementById('enroll-msg');
+                        msg.style.display = 'block';
+                        msg.innerHTML = 'You are enrolled. <a href="/dashboard" style="color:var(--primary)">Go to Dashboard</a>';
+
+                        // Unlock lectures visually
+                        modContainer.innerHTML = modContainer.innerHTML.replace(/🔒 Locked/g, '🔓 Unlocked');
+                    }
+                }
+            } else if (isLoggedIn() && getUserRole() !== 'student') {
+                document.getElementById('enroll-btn').style.display = 'none';
+            }
+
+        } catch (e) { console.error('Error fetching course details', e) }
+    });
+
+    async function enrollCourse() {
+        if (!isLoggedIn()) {
+            window.location.href = '/login';
+            return;
+        }
+
+        try {
+            const res = await apiFetch('/api/enroll/', {
+                method: 'POST',
+                body: JSON.stringify({ course: courseId }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (res.ok) {
+                alert('Successfully enrolled!');
+                window.location.reload();
+            } else {
+                const data = await res.json();
+                alert(JSON.stringify(data));
+            }
+        } catch (e) {
+            alert('Failed to enroll.');
+        }
+    }
+</script>
+{% endblock %}

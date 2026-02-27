@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard View Router{% endblock %}
+
+{% block content %}
+<div id="dashboard-loader" style="text-align:center; padding: 4rem;">
+    <h2>Loading Dashboard...</h2>
+</div>
+
+<!-- Student Dashboard Container -->
+<div id="student-dashboard" style="display: none;">
+    <div class="dashboard-header">
+        <div>
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Welcome back, Student!</h1>
+            <p style="color: var(--text-muted);">Continue learning your enrolled courses.</p>
+        </div>
+        <a href="/courses" class="btn-submit"
+            style="width: auto; padding: 0.75rem 1.5rem; text-decoration: none;">Browse Courses</a>
+    </div>
+
+    <div class="course-grid" id="student-courses-grid">
+        <!-- Injected via JS -->
+    </div>
+</div>
+
+<!-- Instructor Dashboard Container -->
+<div id="instructor-dashboard" style="display: none;">
+    <div class="dashboard-header">
+        <div>
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Instructor Portal</h1>
+            <p style="color: var(--text-muted);">Manage your curriculum and track enrollments.</p>
+        </div>
+    </div>
+
+    <div class="course-grid" id="instructor-courses-grid">
+        <!-- Injected via JS -->
+    </div>
+</div>
+
+<!-- Admin Dashboard Container -->
+<div id="admin-dashboard" style="display: none;">
+    <div class="dashboard-header">
+        <div>
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Admin Analytics</h1>
+            <p style="color: var(--text-muted);">Platform wide insights.</p>
+        </div>
+    </div>
+
+    <div class="stats-grid" id="admin-stats">
+        <!-- Injected via JS -->
+    </div>
+
+    <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Top Enrolled Courses</h2>
+    <div class="course-grid" id="top-courses-grid">
+        <!-- Injected via JS -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!isLoggedIn()) {
+            window.location.href = '/login';
+            return;
+        }
+
+        // Role-based routing built purely with JS dynamically showing/hiding containers
+        const role = getUserRole();
+        document.getElementById('dashboard-loader').style.display = 'none';
+
+        if (role === 'student') {
+            document.getElementById('student-dashboard').style.display = 'block';
+            loadStudentDashboard();
+        } else if (role === 'instructor') {
+            document.getElementById('instructor-dashboard').style.display = 'block';
+            loadInstructorDashboard();
+        } else if (role === 'admin') {
+            document.getElementById('admin-dashboard').style.display = 'block';
+            loadAdminDashboard();
+        }
+    });
+
+    async function loadStudentDashboard() {
+        try {
+            const res = await apiFetch('/api/my-courses/');
+            const data = await res.json();
+            const grid = document.getElementById('student-courses-grid');
+
+            if (data.results && data.results.length === 0) {
+                grid.innerHTML = '<p>You are not enrolled in any courses yet.</p>';
+                return;
+            }
+
+            let html = '';
+            data.results.forEach(enrollment => {
+                const course = enrollment.course_detail;
+                const progress = enrollment.progress_percent;
+
+                html += `
+                <div class="course-card">
+                    <div class="course-img-placeholder">${course.title.charAt(0)}</div>
+                    <div class="course-content">
+                        <div class="course-title">${course.title}</div>
+                        <div class="course-author">${course.category_detail ? course.category_detail.name : 'Unknown Category'}</div>
+                        
+                        <div style="margin-top: 1rem">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+                                <span>Progress</span>
+                                <span>${progress}%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        
+                        <a href="/course/${course.id}" class="btn-submit" style="text-align: center; text-decoration: none;">Continue Learning</a>
+                    </div>
+                </div>
+            `;
+            });
+            grid.innerHTML = html;
+
+        } catch (e) { console.error('Error fetching student courses', e) }
+    }
+
+    async function loadInstructorDashboard() {
+        try {
+            const res = await apiFetch('/api/instructor/courses/');
+            const data = await res.json();
+            const grid = document.getElementById('instructor-courses-grid');
+
+            let html = '';
+            if (data.results) {
+                data.results.forEach(course => {
+                    html += `
+                    <div class="course-card">
+                        <div class="course-content">
+                            <div class="course-title">${course.title}</div>
+                            <div class="course-author">Status: ${course.is_published ? '<span style="color:var(--success)">Published</span>' : '<span style="color:var(--text-muted)">Draft</span>'}</div>
+                            <div class="course-price">$${course.price}</div>
+                        </div>
+                    </div>
+                `;
+                });
+            }
+            grid.innerHTML = html;
+        } catch (e) { console.error('Error fetching instructor data', e) }
+    }
+
+    async function loadAdminDashboard() {
+        try {
+            // Fetch stats
+            const statsRes = await apiFetch('/api/admin/analytics/');
+            const stats = await statsRes.json();
+
+            const statsEl = document.getElementById('admin-stats');
+            statsEl.innerHTML = `
+            <div class="stat-card">
+                <h3>Total Students</h3>
+                <div class="value">${stats.total_students}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Instructors</h3>
+                <div class="value">${stats.total_instructors}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Courses</h3>
+                <div class="value">${stats.total_courses}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Enrollments</h3>
+                <div class="value">${stats.total_enrollments}</div>
+            </div>
+        `;
+
+            // Fetch Top Courses
+            const topRes = await apiFetch('/api/admin/top-courses/');
+            const topCourses = await topRes.json();
+
+            const topGrid = document.getElementById('top-courses-grid');
+            let ht = '';
+            topCourses.forEach(c => {
+                ht += `
+                 <div class="stat-card" style="text-align: left;">
+                    <h3>${c.title}</h3>
+                    <p style="color: var(--success); font-weight: bold;">Enrollments: ${c.enrollments}</p>
+                 </div>
+             `;
+            });
+            topGrid.innerHTML = ht;
+
+        } catch (e) { console.error('Error fetching admin data', e) }
+    }
+</script>
+{% endblock %}
